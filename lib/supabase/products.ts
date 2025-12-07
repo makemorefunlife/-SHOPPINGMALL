@@ -14,8 +14,17 @@ import type { Product, ProductCategory } from '@/types/database';
  * 인증이 필요 없는 공개 데이터 조회용
  */
 function createPublicSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('Supabase environment variables are not set:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseKey,
+    });
+    throw new Error('Supabase 환경 변수가 설정되지 않았습니다.');
+  }
+  
   return createClient(supabaseUrl, supabaseKey);
 }
 
@@ -101,18 +110,35 @@ export async function getFeaturedProducts(limit: number = 8): Promise<Product[]>
 
     if (error) {
       console.error('Error fetching featured products:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
+        message: error.message || 'Unknown error',
+        details: error.details || 'No details',
+        hint: error.hint || 'No hint',
+        code: error.code || 'No code',
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
       });
+      
+      // 테이블이 존재하지 않는 경우를 확인
+      if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        console.error('Products table does not exist. Please run the migration:', 
+          'supabase/migrations/20250101000000_create_shopping_mall_schema.sql');
+      }
+      
       // 에러를 throw하지 않고 빈 배열 반환 (페이지가 깨지지 않도록)
       return [];
     }
 
     return data || [];
   } catch (err) {
-    console.error('Unexpected error in getFeaturedProducts:', err);
+    console.error('Unexpected error in getFeaturedProducts:', {
+      error: err,
+      errorType: typeof err,
+      errorString: String(err),
+      errorJSON: err instanceof Error ? {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      } : err,
+    });
     return [];
   }
 }

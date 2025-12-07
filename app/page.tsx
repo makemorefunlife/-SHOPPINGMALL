@@ -12,10 +12,17 @@ import { ProductCard } from "@/components/ProductCard";
 import { CATEGORY_NAMES } from "@/types/database";
 
 export default async function Home() {
-  // 인기 상품 8개 조회
-  const featuredProducts = await getFeaturedProducts(8);
-  // 카테고리 목록 조회
-  const categories = await getCategories();
+  // 인기 상품 8개 조회 (에러 발생 시 빈 배열 반환)
+  let featuredProducts: Awaited<ReturnType<typeof getFeaturedProducts>> = [];
+  let categories: Awaited<ReturnType<typeof getCategories>> = [];
+  
+  try {
+    featuredProducts = await getFeaturedProducts(8);
+    categories = await getCategories();
+  } catch (error) {
+    console.error('Error loading home page data:', error);
+    // 에러가 발생해도 페이지는 표시되도록 빈 배열 사용
+  }
 
   return (
     <main className="min-h-[calc(100vh-80px)]">
