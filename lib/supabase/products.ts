@@ -6,13 +6,24 @@
  */
 
 import { createClerkSupabaseClient } from './server';
+import { createClient } from '@supabase/supabase-js';
 import type { Product, ProductCategory } from '@/types/database';
+
+/**
+ * 공개 데이터용 Supabase 클라이언트 생성
+ * 인증이 필요 없는 공개 데이터 조회용
+ */
+function createPublicSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient(supabaseUrl, supabaseKey);
+}
 
 /**
  * 활성화된 모든 상품 조회
  */
 export async function getProducts(): Promise<Product[]> {
-  const supabase = createClerkSupabaseClient();
+  const supabase = createPublicSupabaseClient();
   
   const { data, error } = await supabase
     .from('products')
@@ -32,7 +43,7 @@ export async function getProducts(): Promise<Product[]> {
  * 카테고리별 상품 조회
  */
 export async function getProductsByCategory(category: ProductCategory): Promise<Product[]> {
-  const supabase = createClerkSupabaseClient();
+  const supabase = createPublicSupabaseClient();
   
   let query = supabase
     .from('products')
@@ -57,7 +68,7 @@ export async function getProductsByCategory(category: ProductCategory): Promise<
  * 상품 ID로 단일 상품 조회
  */
 export async function getProductById(id: string): Promise<Product | null> {
-  const supabase = createClerkSupabaseClient();
+  const supabase = createPublicSupabaseClient();
   
   const { data, error } = await supabase
     .from('products')
@@ -78,45 +89,66 @@ export async function getProductById(id: string): Promise<Product | null> {
  * 인기 상품 조회 (최근 생성된 상위 N개)
  */
 export async function getFeaturedProducts(limit: number = 8): Promise<Product[]> {
-  const supabase = createClerkSupabaseClient();
-  
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  try {
+    const supabase = createPublicSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-  if (error) {
-    console.error('Error fetching featured products:', error);
-    throw error;
+    if (error) {
+      console.error('Error fetching featured products:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      // 에러를 throw하지 않고 빈 배열 반환 (페이지가 깨지지 않도록)
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Unexpected error in getFeaturedProducts:', err);
+    return [];
   }
-
-  return data || [];
 }
 
 /**
  * 모든 카테고리 목록 조회
  */
 export async function getCategories(): Promise<string[]> {
-  const supabase = createClerkSupabaseClient();
-  
-  const { data, error } = await supabase
-    .from('products')
-    .select('category')
-    .eq('is_active', true)
-    .not('category', 'is', null);
+  try {
+    const supabase = createPublicSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('category')
+      .eq('is_active', true)
+      .not('category', 'is', null);
 
-  if (error) {
-    console.error('Error fetching categories:', error);
-    throw error;
+    if (error) {
+      console.error('Error fetching categories:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      return [];
+    }
+
+    // 중복 제거
+    const uniqueCategories = Array.from(
+      new Set(data?.map(item => item.category).filter(Boolean))
+    ) as string[];
+
+    return uniqueCategories;
+  } catch (err) {
+    console.error('Unexpected error in getCategories:', err);
+    return [];
   }
-
-  // 중복 제거
-  const uniqueCategories = Array.from(
-    new Set(data?.map(item => item.category).filter(Boolean))
-  ) as string[];
-
-  return uniqueCategories;
 }
 
