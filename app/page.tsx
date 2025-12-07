@@ -1,41 +1,82 @@
+/**
+ * @file page.tsx
+ * @description 홈 페이지
+ * 
+ * 프로모션 배너와 카테고리 진입 동선을 제공하는 메인 페이지
+ */
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { RiSupabaseFill } from "react-icons/ri";
+import { getFeaturedProducts, getCategories } from "@/lib/supabase/products";
+import { ProductCard } from "@/components/ProductCard";
+import { CATEGORY_NAMES } from "@/types/database";
 
-export default function Home() {
+export default async function Home() {
+  // 인기 상품 8개 조회
+  const featuredProducts = await getFeaturedProducts(8);
+  // 카테고리 목록 조회
+  const categories = await getCategories();
+
   return (
-    <main className="min-h-[calc(100vh-80px)] flex items-center px-8 py-16 lg:py-24">
-      <section className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start lg:items-center">
-        {/* 좌측: 환영 메시지 */}
-        <div className="flex flex-col gap-8">
-          <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-            SaaS 앱 템플릿에 오신 것을 환영합니다
+    <main className="min-h-[calc(100vh-80px)]">
+      {/* 프로모션 배너 섹션 */}
+      <section className="bg-gradient-to-r from-primary/10 to-primary/5 py-16 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-bold mb-4">
+            쇼핑몰에 오신 것을 환영합니다
           </h1>
-          <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-400 leading-relaxed">
-            Next.js, Shadcn, Clerk, Supabase, TailwindCSS로 구동되는 완전한
-            기능의 템플릿으로 다음 프로젝트를 시작하세요.
+          <p className="text-xl md:text-2xl text-gray-600 mb-8">
+            최신 트렌드의 다양한 상품을 만나보세요
           </p>
-        </div>
-
-        {/* 우측: 버튼 두 개 세로 정렬 */}
-        <div className="flex flex-col gap-6">
-          <Link href="/storage-test" className="w-full">
-            <Button className="w-full h-28 flex items-center justify-center gap-4 text-xl shadow-lg hover:shadow-xl transition-shadow">
-              <RiSupabaseFill className="w-8 h-8" />
-              <span>Storage 파일 업로드 테스트</span>
-            </Button>
-          </Link>
-          <Link href="/auth-test" className="w-full">
-            <Button
-              className="w-full h-28 flex items-center justify-center gap-4 text-xl shadow-lg hover:shadow-xl transition-shadow"
-              variant="outline"
-            >
-              <RiSupabaseFill className="w-8 h-8" />
-              <span>Clerk + Supabase 인증 연동</span>
+          <Link href="/products">
+            <Button size="lg" className="text-lg px-8 py-6">
+              전체 상품 보기
             </Button>
           </Link>
         </div>
       </section>
+
+      {/* 카테고리 진입 섹션 */}
+      {categories.length > 0 && (
+        <section className="py-12 px-4">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl font-bold mb-8 text-center">카테고리</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+              {categories.map((category) => (
+                <Link
+                  key={category}
+                  href={`/products?category=${category}`}
+                  className="border rounded-lg p-6 text-center hover:shadow-lg transition-shadow hover:border-primary"
+                >
+                  <div className="text-2xl mb-2">🛍️</div>
+                  <div className="font-semibold">
+                    {CATEGORY_NAMES[category] || category}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 인기 상품 섹션 */}
+      {featuredProducts.length > 0 && (
+        <section className="py-12 px-4 bg-gray-50">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold">인기 상품</h2>
+              <Link href="/products">
+                <Button variant="outline">더보기 →</Button>
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
