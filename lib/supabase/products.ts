@@ -109,18 +109,25 @@ export async function getFeaturedProducts(limit: number = 8): Promise<Product[]>
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching featured products:', {
-        message: error.message || 'Unknown error',
-        details: error.details || 'No details',
-        hint: error.hint || 'No hint',
-        code: error.code || 'No code',
-        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
-      });
+      // 에러 객체가 비어있을 수 있으므로 더 안전하게 처리
+      const errorInfo = {
+        message: error?.message || 'Unknown error',
+        details: error?.details || 'No details',
+        hint: error?.hint || 'No hint',
+        code: error?.code || 'No code',
+        // 에러 객체의 모든 속성 확인
+        errorKeys: error ? Object.keys(error) : [],
+        errorString: String(error),
+      };
+      
+      console.error('Error fetching featured products:', errorInfo);
       
       // 테이블이 존재하지 않는 경우를 확인
-      if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
-        console.error('Products table does not exist. Please run the migration:', 
-          'supabase/migrations/20250101000000_create_shopping_mall_schema.sql');
+      const errorMessage = String(error?.message || '');
+      if (errorMessage.includes('relation') || errorMessage.includes('does not exist') || errorMessage.includes('42P01')) {
+        console.error('⚠️ Products table does not exist. Please run the migration:');
+        console.error('   supabase/migrations/20250101000000_create_shopping_mall_schema.sql');
+        console.error('   Go to Supabase Dashboard → SQL Editor → Run the migration file');
       }
       
       // 에러를 throw하지 않고 빈 배열 반환 (페이지가 깨지지 않도록)
@@ -157,12 +164,27 @@ export async function getCategories(): Promise<string[]> {
       .not('category', 'is', null);
 
     if (error) {
-      console.error('Error fetching categories:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-      });
+      // 에러 객체가 비어있을 수 있으므로 더 안전하게 처리
+      const errorInfo = {
+        message: error?.message || 'Unknown error',
+        details: error?.details || 'No details',
+        hint: error?.hint || 'No hint',
+        code: error?.code || 'No code',
+        // 에러 객체의 모든 속성 확인
+        errorKeys: error ? Object.keys(error) : [],
+        errorString: String(error),
+      };
+      
+      console.error('Error fetching categories:', errorInfo);
+      
+      // 테이블이 존재하지 않는 경우를 확인
+      const errorMessage = String(error?.message || '');
+      if (errorMessage.includes('relation') || errorMessage.includes('does not exist') || errorMessage.includes('42P01')) {
+        console.error('⚠️ Products table does not exist. Please run the migration:');
+        console.error('   supabase/migrations/20250101000000_create_shopping_mall_schema.sql');
+        console.error('   Go to Supabase Dashboard → SQL Editor → Run the migration file');
+      }
+      
       return [];
     }
 
